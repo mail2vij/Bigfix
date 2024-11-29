@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Fixlet>
+		<Title>BigFix-ITSM Incident Closure</Title>
+		<Description><![CDATA[
+<STYLE>
+    .form-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+		margin-top: 10px;
+    }
+    .form-group label {
+        width: 150px; /* Fixed width for labels */
+        text-align: right; /* Align label text to the right */
+        margin-right: 10px; /* Space between label and input */
+    }
+    .form-group input {
+        width: 300px; /* Fixed width for input boxes */
+        padding: 5px; /* Add padding for better appearance */
+        box-sizing: border-box; /* Include padding in total width */
+    }
+</STYLE>
+
+<P><LABEL for=secret><STRONG><FONT color=#008000 size=3>Customization Options</FONT></STRONG> </LABEL></P>
+<DIV class=form-group><LABEL for=Threshold_Type>Threshold_Type</LABEL> <INPUT id=Threshold_Type name=Threshold_Type> </DIV>
+<DIV class=form-group><LABEL for=Server_Hostname>Server_Hostname</LABEL> <INPUT id=Server_Hostname name=Server_Hostname> </DIV>
+<DIV class=form-group><LABEL for=SX_User>SX_User</LABEL> <INPUT id=SX_User name=SX_User> </DIV>
+<DIV class=form-group><LABEL for=SX_Passwd>SX_Passwd</LABEL> <INPUT id=SX_Passwd type=password name=SX_Passwd> </DIV><script>
+				document.body.ontakeaction = function() {
+				var theSX_User = document.getElementById( "SX_User" ).value;
+				var theSX_Passwd = document.getElementById( "SX_Passwd" ).value;
+				var theThreshold_Type = document.getElementById( "Threshold_Type" ).value;
+				var theServer_Hostname = document.getElementById( "Server_Hostname" ).value;
+
+				if (theThreshold_Type==null || theThreshold_Type=="")
+					{alert("Hey, you forgot to enter the Threshold_Type parameter! Please enter one on the Description tab before taking the action.");}
+				else if (theServer_Hostname==null || theServer_Hostname=="")
+					{alert("Hey, you forgot to enter the Server_Hostname! Please enter one on the Description tab before taking the action.");}
+				else if (theSX_User==null || theSX_User=="")
+					{alert("Hey, you forgot to enter the Username of SX Admin! Please enter one on the Description tab before taking the action.");}
+				else if (theSX_Passwd==null || theSX_Passwd=="")
+					{alert("Hey, you forgot to enter the Password of SX Admin! Please enter one on the Description tab before taking the action.");}
+				else
+					{TakeSecureFixletAction( Relevance('id of current fixlet'), Relevance('id of current bes site'), "Action1", {}, { "Threshold_Type": theThreshold_Type, "Server_Hostname": theServer_Hostname, "SX_User": theSX_User, "SX_Passwd": theSX_Passwd} );}
+				return false;
+				}
+
+
+</script> 
+<P></P>
+<BLOCKQUOTE></BLOCKQUOTE>]]></Description>
+		<Relevance>((name of it = "Win2012R2") OR (name of it = "Win2016") OR (name of it = "Win2019") OR (name of it = "Win2022")) of operating system</Relevance>
+		<Relevance>exists main gather service</Relevance>
+		<Category></Category>
+		<Source>Internal</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2024-11-19</SourceReleaseDate>
+		<SourceSeverity></SourceSeverity>
+		<CVENames></CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Thu, 28 Nov 2024 17:46:41 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell"><![CDATA[action uses wow64 redirection {false}
+
+delete __createfile
+
+parameter "Backup_Folder" = "{(value "EnterpriseClientFolder" of keys "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\BigFix\EnterpriseClient" of native registry) as string & "SX\Closed_Incidents"}"
+if {not exists folder (parameter "Backup_Folder")} 
+folder create "{parameter "Backup_Folder"}"
+endif
+
+parameter "Error_Folder" = "{(value "EnterpriseClientFolder" of keys "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\BigFix\EnterpriseClient" of native registry) as string & "SX\Logs"}"
+if {not exists folder (parameter "Error_Folder")} 
+folder create "{parameter "Error_Folder"}"
+endif
+
+createfile until eof
+
+# Define the parent folder
+$serverFolder = "{parameter "Error_Folder"}\{parameter "Server_Hostname" as uppercase}"
+
+# Check if the parent folder exists
+if (Test-Path -Path $serverFolder) {{
+    # Get all files in the current subfolder that contain 'threshold_type' in the name
+    $incidentForClosure = Get-ChildItem -Path $serverFolder -ErrorAction SilentlyContinue | Where-Object {{ $_.Name -like "*{parameter "Threshold_Type" as uppercase}*" }
+
+    if ($incidentForClosure) {{
+        $incidentDetails = Get-Content -Path $incidentForClosure.FullName
+        $clientItemNumber = (($incidentDetails -match "ClientItemNumber: [A-Za-z0-9]+") | Select-Object -First 1) -split ": " | Select-Object -Last 1
+        $incidentNumber = ($incidentDetails -match "^ItemNumber: [A-Za-z0-9]+") -split ": " | Select-Object -Last 1
+        if ($incidentNumber) {{
+            # Define the URL for the POST request
+            $uri = "url of itsm"
+
+            # SXAPI User Credentials
+			$sxapiUsername = "{parameter "SX_User"}"
+			$sxapiPassword = "{parameter "SX_Passwd"}"
+
+            # Base64 encode the credentials for the Basic Auth header
+            $sxbase64AuthHeader = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{{0}:{{1}" -f $sxapiUsername, $sxapiPassword)))
+            $sxauthHeaders = @{{Authorization=("Basic {{0}" -f $sxbase64AuthHeader)}
+            $sxauthHeaders.Add("Content-Type", "application/json")
+
+            # Define the body (payload) of the POST request as a PowerShell object
+            $body = @"
+            {{
+                  "clientItemNumber" : "$clientItemNumber",
+                  "itemNumber" : "$incidentNumber",
+                  "assignedGroupName" : "4f0c9d2c3be09a90d785087aa5e45ad9",
+                  "ticketStatusID" : "2",
+                  "onhold" : "",
+                  "ticketPriorityID" : "3",
+                  "activityLogEntry" : "Close Code: Resolved by caller Close Notes: Closed by Caller"
+            }
+"@
+            # Make the POST request
+            $response = Invoke-RestMethod -Uri $uri -Method POST -Headers $sxauthHeaders -Body $body
+
+            # Validating the response
+            if ($response.status -eq "OK") {{
+                Move-Item -Path $incidentForClosure.FullName -Destination "{parameter "Backup_Folder"}"
+            }
+        }
+    }
+}
+
+eof
+
+delete incident_closure.ps1
+move __createfile incident_closure.ps1
+waithidden { pathname of file ((it as string) of value "Path" of key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" of native registry) } -ExecutionPolicy Bypass -File incident_closure.ps1]]></ActionScript>
+			<SuccessCriteria Option="RunToCompletion"></SuccessCriteria>
+		</DefaultAction>
+	</Fixlet>
+</BES>
