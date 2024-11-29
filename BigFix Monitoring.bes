@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Fixlet>
+		<Title>BigFix Monitoring</Title>
+		<Description><![CDATA[
+<STYLE>
+    .form-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+		margin-top: 10px;
+    }
+    .form-group label {
+        width: 150px; /* Fixed width for labels */
+        text-align: right; /* Align label text to the right */
+        margin-right: 10px; /* Space between label and input */
+    }
+    .form-group input {
+        width: 300px; /* Fixed width for input boxes */
+        padding: 5px; /* Add some padding for better appearance */
+        box-sizing: border-box; /* Ensure padding doesn't affect the total width */
+    }
+</STYLE>
+
+<P><LABEL for=secret><STRONG><FONT color=#008000 size=3>Customization Options</FONT></STRONG> </LABEL></P>
+<DIV class=form-group><LABEL for=CPU_Threshold>CPU_Threshold</LABEL> <INPUT id=CPU_Threshold name=CPU_Threshold> </DIV>
+<DIV class=form-group><LABEL for=RAM_Threshold>RAM_Threshold</LABEL> <INPUT id=RAM_Threshold name=RAM_Threshold> </DIV>
+<DIV class=form-group><LABEL for=DISK_Threshold>DISK_Threshold</LABEL> <INPUT id=DISK_Threshold name=DISK_Threshold> </DIV>
+<DIV class=form-group><LABEL for=BF_User>BF_User</LABEL> <INPUT id=BF_User name=BF_User> </DIV>
+<DIV class=form-group><LABEL for=BF_Passwd>BF_Passwd</LABEL> <INPUT id=BF_Passwd type=password name=BF_Passwd> </DIV>
+<DIV class=form-group><LABEL for=SX_User>SX_User</LABEL> <INPUT id=SX_User name=SX_User> </DIV>
+<DIV class=form-group><LABEL for=SX_Passwd>SX_Passwd</LABEL> <INPUT id=SX_Passwd type=password name=SX_Passwd> </DIV><script>
+				document.body.ontakeaction = function() {
+				var theBF_User = document.getElementById( "BF_User" ).value;
+				var theBF_Passwd = document.getElementById( "BF_Passwd" ).value;
+				var theSX_User = document.getElementById( "SX_User" ).value;
+				var theSX_Passwd = document.getElementById( "SX_Passwd" ).value;
+				var theCPU = document.getElementById( "CPU_Threshold" ).value;
+				var theRAM = document.getElementById( "RAM_Threshold" ).value;
+				var theDISK = document.getElementById( "DISK_Threshold" ).value;
+
+				if (theCPU==null || theCPU=="")
+					{alert("Hey, you forgot to enter a CPU Threshold parameter! Please enter one on the Description tab before taking the action.");}
+				else if (theRAM==null || theRAM=="")
+					{alert("Hey, you forgot to enter a RAM Threshold parameter! Please enter one on the Description tab before taking the action.");}
+				else if (theDISK==null || theDISK=="")
+					{alert("Hey, you forgot to enter a DISK Threshold parameter! Please enter one on the Description tab before taking the action.");}
+				else if (theBF_User==null || theBF_User=="")
+					{alert("Hey, you forgot to enter the Username of BigFix Admin! Please enter one on the Description tab before taking the action.");}
+				else if (theBF_Passwd==null || theBF_Passwd=="")
+					{alert("Hey, you forgot to enter the Password of BigFix Admin! Please enter one on the Description tab before taking the action.");}
+				else if (theSX_User==null || theSX_User=="")
+					{alert("Hey, you forgot to enter the Username of SX Admin! Please enter one on the Description tab before taking the action.");}
+				else if (theSX_Passwd==null || theSX_Passwd=="")
+					{alert("Hey, you forgot to enter the Password of SX Admin! Please enter one on the Description tab before taking the action.");}
+				else
+					{TakeSecureFixletAction( Relevance('id of current fixlet'), Relevance('id of current bes site'), "Action1", {}, { "BF_User": theBF_User, "BF_Passwd": theBF_Passwd, "SX_User": theSX_User, "SX_Passwd": theSX_Passwd, "CPU_Threshold": theCPU, "RAM_Threshold": theRAM, "DISK_Threshold": theDISK} );}
+				return false;
+				}
+
+
+</script> 
+<P></P>
+<BLOCKQUOTE></BLOCKQUOTE>]]></Description>
+		<Relevance>((name of it = "Win2012R2") OR (name of it = "Win2016") OR (name of it = "Win2019") OR (name of it = "Win2022")) of operating system</Relevance>
+		<Relevance>exists main gather service</Relevance>
+		<Category></Category>
+		<Source>Internal</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2024-11-19</SourceReleaseDate>
+		<SourceSeverity></SourceSeverity>
+		<CVENames></CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Thu, 28 Nov 2024 17:44:42 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell"><![CDATA[action uses wow64 redirection {false}
+
+delete __createfile
+
+parameter "Script_Folder" = "{(value "EnterpriseClientFolder" of keys "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\BigFix\EnterpriseClient" of native registry) as string & "SX"}"
+if {not exists folder (parameter "Script_Folder")} 
+folder create "{parameter "Script_Folder"}"
+endif
+
+parameter "Error_Folder" = "{(value "EnterpriseClientFolder" of keys "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\BigFix\EnterpriseClient" of native registry) as string & "SX\Logs"}"
+if {not exists folder (parameter "Error_Folder")} 
+folder create "{parameter "Error_Folder"}"
+endif
+
+createfile until eof
+
+# Trusting all certificates
+add-type @"
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+public class TrustAllCertsPolicy : ICertificatePolicy {{
+   public bool CheckValidationResult(
+   ServicePoint srvPoint, X509Certificate certificate,
+   WebRequest request, int certificateProblem) {{
+   return true;
+}
+}
+"@
+
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+
+# API User Credentials
+$apiUsername = "{parameter "BF_User"}"
+$apiPassword = "{parameter "BF_Passwd"}"
+
+# Base64 encode the credentials for the Basic Auth header
+$base64AuthHeader = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{{0}:{{1}" -f $apiUsername, $apiPassword)))
+$authHeaders = @{{Authorization=("Basic {{0}" -f $base64AuthHeader)}
+$authHeaders.Add("Content-Type", "application/json")
+
+# Define resource thresholds
+$cpuUsageThreshold = "{parameter "CPU_Threshold"}"
+$ramUsageThreshold = "{parameter "RAM_Threshold"}"
+$diskUsageThreshold = "{parameter "DISK_Threshold"}"
+
+# Define relevant property names for monitoring
+$cpuPropertyName = "CPU_SX"
+$ramPropertyName = "RAM_SX"
+$diskPropertyName = "DISK_SX"
+$relayServiceProperty = "BES Relay Service Installed"
+
+# Construct queries to fetch relevant data from BigFix
+$cpuQueryString = "elements of intersection of (set of (names of computers of results whose (value of it as integer > $cpuUsageThreshold) of bes property `"$cpuPropertyName`"); set of (names of computers of results whose (value of it != `"`") of bes property `"$relayServiceProperty`"))"
+$encodedCpuQuery = [System.Uri]::EscapeDataString($cpuQueryString)
+
+$ramQueryString = "elements of intersection of (set of (names of computers of results whose (value of it as integer > $ramUsageThreshold) of bes property `"$ramPropertyName`"); set of (names of computers of results whose (value of it != `"`") of bes property `"$relayServiceProperty`"))"
+$encodedRamQuery = [System.Uri]::EscapeDataString($ramQueryString)
+
+$diskQueryString = "elements of intersection of (set of (names of computers of results whose (value of it as integer > $diskUsageThreshold) of bes property `"$diskPropertyName`"); set of (names of computers of results whose (value of it != `"`") of bes property `"$relayServiceProperty`"))"
+$encodedDiskQuery = [System.Uri]::EscapeDataString($diskQueryString)
+
+# Send GET requests to the BigFix API
+$responseRam = Invoke-RestMethod "https://bigfixserver:52311/api/query?output=json&relevance=$encodedRamQuery" -Method 'GET' -Headers $authHeaders
+$responseCpu = Invoke-RestMethod "https://bigfixserver:52311/api/query?output=json&relevance=$encodedCpuQuery" -Method 'GET' -Headers $authHeaders
+$responseDisk = Invoke-RestMethod "https://bigfixserver:52311/api/query?output=json&relevance=$encodedDiskQuery" -Method 'GET' -Headers $authHeaders
+
+# Capture results into arrays
+$ramServers = @($responseRam.result)
+$cpuServers = @($responseCpu.result)
+$diskServers = @($responseDisk.result)
+
+# Define base log directory path
+$baseLogDirectory = "{parameter "Error_Folder"}"
+
+# Ensure the base log directory exists, create if it doesn't
+if (-not (Test-Path -Path $baseLogDirectory)) {{
+    New-Item -Path $baseLogDirectory -ItemType Directory -Force
+}
+
+# Function to handle logs and incident creation
+function LogAndIncidentHandling {{
+    param (
+        [string]$thresholdType,
+        [array]$servers
+    )
+	# Ensure the base log directory exists, create if it doesn't
+    if (-not (Test-Path -Path $baseLogDirectory)) {{
+        New-Item -Path $baseLogDirectory -ItemType Directory -Force
+    }
+
+    foreach ($server in $servers) {{
+        # Create folder with the server name
+        $serverFolderPath = Join-Path -Path $baseLogDirectory -ChildPath $server
+        if (-not (Test-Path -Path $serverFolderPath)) {{
+            New-Item -Path $serverFolderPath -ItemType Directory
+        }
+
+        # Verify whether the most recent incident was closed or not
+        $existIncident = Get-ChildItem -Path $serverFolderPath | Where-Object {{ $_.Name -match $thresholdType }
+        if ($existIncident) {{ continue }
+
+        # Prepare the log message and log file
+        $timestamp = (Get-Date).ToString("yyyyMMddHHmmss")
+        $logMessage = "$timestamp - $thresholdType exceeded: $server"
+        
+        # Create log file with current date and time in the name
+        $logFileName = "$thresholdType" + "_" + $timestamp + ".txt"  # Include timestamp in the file name
+        $logFilePath = Join-Path -Path $serverFolderPath -ChildPath $logFileName
+
+        # Write log entry into the server's folder with the new log filename
+        Add-Content -Path $logFilePath -Value $logMessage
+
+        # Define the URL for the POST request
+        $uri = "https://inttest.dryice-aws.com/api1?purpose=BigfixToSXIncidentCreate&client=Democompany1"
+
+        # SXAPI User Credentials
+        $sxapiUsername = "{parameter "SX_User"}"
+        $sxapiPassword = "{parameter "SX_Passwd"}"
+
+        # Base64 encode the credentials for the Basic Auth header
+        $sxbase64AuthHeader = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{{0}:{{1}" -f $sxapiUsername, $sxapiPassword)))
+        $sxauthHeaders = @{{Authorization=("Basic {{0}" -f $sxbase64AuthHeader)}
+        $sxauthHeaders.Add("Content-Type", "application/json")
+
+        # Create clientItemNumber
+        $clientItemNumber = "$thresholdType-$server-$timestamp"
+        $logMessage = "ClientItemNumber: $clientItemNumber"
+        Add-Content -Path $logFilePath -Value $logMessage
+
+        # Define the body (payload) of the POST request as a PowerShell object
+        $body = @"
+        {{
+          "subject" : "BigFix to SX testing",
+          "clientItemNumber" : "$clientItemNumber",
+          "impactedUserName" : "UserName",
+          "assignedGroupName" : "BigFix - Support",
+          "description" : "$logMessage",
+          "ticketPriorityID" : "3",
+          "ticketStatusID" : "1",
+          "reportedThrough" : "Email",
+          "subCategory" : null,
+          "category" : "Inquiry / Help",
+          "AffectedCI" : "BIGFIXSRV01"
+        }
+"@
+		Add-Content -Path $logFilePath -Value $body
+		
+        # Make the POST request
+        $response = Invoke-RestMethod -Uri $uri -Method POST -Headers $sxauthHeaders -Body $body
+
+        # Validate the response and get incident number
+        if ($response.status -eq "OK"){{
+            # Take a pause while incident is created
+            Start-Sleep -Seconds 30
+
+            # Define the URL for the POST request
+            $uri = "url of itsm"
+    
+            # Define the body (payload) of the GET request as a PowerShell object
+            $body = @{{   
+                "clientItemNumber" = "$clientItemNumber"
+                "clientName" = "Demo Company NIFI"
+            } | ConvertTo-Json
+
+            # Make the GET request
+            $response = Invoke-RestMethod -Uri $uri -Method POST -Headers $sxauthHeaders -Body $body
+
+            # Get Item Number from response
+            $itemNumber = $response.itemNumber
+            $logMessage = "ItemNumber: $itemNumber"
+            Add-Content -Path $logFilePath -Value $logMessage
+        }
+    }
+}
+
+# Log servers that exceeded thresholds for CPU, RAM, and DISK
+if ($cpuServers.Count -gt 0) {{
+    LogAndIncidentHandling -thresholdType "CPU" -servers $cpuServers
+}
+
+if ($ramServers.Count -gt 0) {{
+    LogAndIncidentHandling -thresholdType "RAM" -servers $ramServers
+}
+
+if ($diskServers.Count -gt 0) {{
+    LogAndIncidentHandling -thresholdType "DISK" -servers $diskServers
+}
+
+eof
+
+delete "SX_SCAN.ps1"
+delete "{parameter "Script_Folder"}\SX_SCAN.ps1"
+move __createfile "{parameter "Script_Folder"}\SX_SCAN.ps1"
+
+continue if {exists file "SX_SCAN.ps1" whose (size of it != 0) of folder (parameter "Script_Folder")}
+// ######################################################### Task Scheduling #############################################################
+createfile until eof
+
+	# Define task properties
+	$action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument '-ExecutionPolicy Bypass -File "{parameter "Script_Folder"}\SX_SCAN.ps1"'
+	$TriggerSettings = New-ScheduledTaskSettingsSet -DisallowHardTerminate -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries -DontStopOnIdleEnd
+	$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date
+	$task = Register-ScheduledTask -TaskName "sx_scan" -Trigger $trigger -Action $action -Settings $TriggerSettings -Description "Your Description" -RunLevel Highest -User "NT AUTHORITY\SYSTEM"
+	$task.Triggers.Repetition.Interval = "PT5M" 
+	$task | Set-ScheduledTask
+
+	Start-ScheduledTask -TaskName "sx_scan"
+
+eof
+
+delete DEX_hf-1_RegisterTaskSch.ps1
+move __createfile DEX_hf-1_RegisterTaskSch.ps1
+waithidden { pathname of file ((it as string) of value "Path" of key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" of native registry) } -ExecutionPolicy Bypass -File DEX_hf-1_RegisterTaskSch.ps1]]></ActionScript>
+			<SuccessCriteria Option="RunToCompletion"></SuccessCriteria>
+		</DefaultAction>
+	</Fixlet>
+</BES>
