@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Fixlet>
+		<Title>Firewall Add (Windows)</Title>
+		<Description><![CDATA[
+<STYLE>
+    .form-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        margin-top: 10px;
+    }
+    .form-group label {
+        width: 150px; /* Fixed width for labels */
+        text-align: right; /* Align label text to the right */
+        margin-right: 10px; /* Space between label and input */
+    }
+    .form-group input, .form-group select {
+        width: 300px; /* Fixed width for input boxes */
+        padding: 5px; /* Add some padding for better appearance */
+        box-sizing: border-box; /* Ensure padding doesn't affect the total width */
+    }
+</STYLE>
+
+<P><LABEL for=secret><STRONG><FONT color=#008000 size=3>Customization Options</FONT></STRONG> </LABEL></P>
+<DIV class=form-group><LABEL for=Rule_Name>Rule_Name</LABEL> <INPUT id=Rule_Name name=Rule_Name> </DIV>
+<DIV class=form-group><LABEL for=Protocol>Protocol</LABEL> <INPUT id=Protocol name=Protocol> </DIV>
+<DIV class=form-group><LABEL for=Port>Port</LABEL> <INPUT id=Port name=Port> </DIV>
+<DIV class=form-group><LABEL for=SourceAddress>SourceAddress</LABEL> <INPUT id=SourceAddress name=SourceAddress> </DIV>
+<DIV class=form-group><LABEL for=DestinationAddress>DestinationAddress</LABEL> <INPUT id=DestinationAddress name=DestinationAddress> </DIV>
+<DIV class=form-group><LABEL for=Action>Action</LABEL> <INPUT id=Action name=Action> </DIV>
+<DIV class=form-group><LABEL for=Enabled>Enabled</LABEL> <INPUT id=Enabled name=Enabled> </DIV>
+<DIV class=form-group><LABEL for=Direction>Direction</LABEL> <SELECT id=Direction name=Direction> <OPTION selected value=Inbound>Inbound</OPTION> <OPTION value=Outbound>Outbound</OPTION></SELECT> </DIV><script>
+    document.body.ontakeaction = function() {
+        var theSourceAddress = document.getElementById("SourceAddress").value;
+        var theAction = document.getElementById("Action").value;
+        var theDestinationAddress = document.getElementById("DestinationAddress").value;
+        var theEnabled = document.getElementById("Enabled").value;
+        var theRuleName = document.getElementById("Rule_Name").value;
+        var theProtocol = document.getElementById("Protocol").value;
+        var thePort = document.getElementById("Port").value;
+        var theDirection = document.getElementById("Direction").value;
+
+        if (theRuleName == null || theRuleName == "")
+            {alert("Hey, you forgot to enter the Rule Name parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theProtocol == null || theProtocol == "")
+            {alert("Hey, you forgot to enter the Protocol parameter! Please enter one on the Description tab before taking the action.");}
+        else if (thePort == null || thePort == "")
+            {alert("Hey, you forgot to enter the Port parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theSourceAddress == null || theSourceAddress == "")
+            {alert("Hey, you forgot to enter the SourceAddress parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theAction == null || theAction == "")
+            {alert("Hey, you forgot to enter the Action parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theDestinationAddress == null || theDestinationAddress == "")
+            {alert("Hey, you forgot to enter the DestinationAddress parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theEnabled == null || theEnabled == "")
+            {alert("Hey, you forgot to enter the Enabled parameter! Please enter one on the Description tab before taking the action.");}
+        else if (theDirection == null || theDirection == "")
+            {alert("Hey, you forgot to select the Direction parameter! Please select one on the Description tab before taking the action.");}
+        else
+            {TakeSecureFixletAction( Relevance('id of current fixlet'), Relevance('id of current bes site'), "Action1", {}, { "SourceAddress": theSourceAddress, "Action": theAction, "DestinationAddress": theDestinationAddress, "Enabled": theEnabled, "Rule_Name": theRuleName, "Protocol": theProtocol, "Port": thePort, "Direction": theDirection });}
+        return false;
+    }
+</script> 
+<P></P>
+<BLOCKQUOTE></BLOCKQUOTE>]]></Description>
+		<Relevance>((name of it = "Win2012R2") OR (name of it = "Win2016") OR (name of it = "Win2019") OR (name of it = "Win2022")) of operating system</Relevance>
+		<Category></Category>
+		<Source>Internal</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2024-11-19</SourceReleaseDate>
+		<SourceSeverity></SourceSeverity>
+		<CVENames></CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Wed, 18 Dec 2024 17:57:49 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell">action uses wow64 redirection {false}
+
+delete __createfile
+
+
+
+createfile until eof
+
+$RuleName = "{parameter "Rule_Name"}"
+$Protocol = "{parameter "Protocol"}"
+$port = "{parameter "Port"}"
+$SourceAddress="{parameter "SourceAddress"}"
+$DestinationAddress="{parameter "DestinationAddress"}"
+$Direction="{parameter "Direction"}"
+$Action="{parameter "Action"}"
+$Enabled="{parameter "Enabled"}"
+
+New-NetFirewallRule -DisplayName $RuleName `
+                        -Direction $Direction `
+                        -Protocol $Protocol `
+                        -LocalPort $Port `
+                        -RemoteAddress $SourceAddress `
+                        -LocalAddress $DestinationAddress `
+                        -Action $Action `
+                        -Enabled $Enabled
+
+eof
+
+delete "SX_SCAN.ps1"
+delete powershell.ps1
+move __createfile powershell.ps1
+waithidden { pathname of file ((it as string) of value "Path" of key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" of native registry) } -ExecutionPolicy Bypass -File powershell.ps1</ActionScript>
+			<SuccessCriteria Option="RunToCompletion"></SuccessCriteria>
+		</DefaultAction>
+	</Fixlet>
+</BES>
