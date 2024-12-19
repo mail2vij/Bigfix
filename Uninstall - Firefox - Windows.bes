@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Fixlet>
+		<Title>Uninstall - Firefox - Windows</Title>
+		<Description>This fixlet is for Uninstall - Firefox - Windows </Description>
+		<Relevance><![CDATA[(windows of operating system) and (version of operating system >= "6.1") and (if exists property "in proxy agent context" then ( not in proxy agent context ) else true) and (free space of drive of client > 45106096 * 2) and (exists value "UninstallString" whose (it as string contains "uninstall\helper.exe") of keys whose (value "DisplayName" of it as string starts with "Mozilla Firefox") of keys "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall" of (x32 registries; x64 registries))]]></Relevance>
+		<Category></Category>
+		<Source>C3 Patch</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2017-02-07</SourceReleaseDate>
+		<SourceSeverity>Unspecified</SourceSeverity>
+		<CVENames>Unspecified</CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>cpe-id-v2.3</Name>
+			<Value>cpe:2.3:a:mozilla:firefox:*:*:*:*:*:*:*:*</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>cpe-id-v2.2</Name>
+			<Value>cpe:/a:mozilla:firefox</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>bigfixme-added-time</Name>
+			<Value>Tue, 07 Feb 2017 18:32:22 GMT</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>bigfixme-ID</Name>
+			<Value>23404</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>bigfixme-modification-time</Name>
+			<Value>Tue, 07 Feb 2017 18:32:22 GMT</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>bigfixme-keywords</Name>
+			<Value></Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>bigfixme-versions-ids</Name>
+			<Value>20346,20963,21909,22381,22830,23099,23609</Value>
+		</MIMEField>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Tue, 18 Jun 2024 10:39:08 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell">
+waithidden taskkill /F /IM firefox.exe
+
+override wait
+hidden=true
+completion=job
+wait {value "UninstallString" of keys whose (value "DisplayName" of it as string starts with "Mozilla Firefox " and value "UninstallString" of it as string contains "uninstall\helper.exe") of keys "HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall" of (x32 registries; x64 registries)} /S
+</ActionScript>
+		</DefaultAction>
+	</Fixlet>
+</BES>
