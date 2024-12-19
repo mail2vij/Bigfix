@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Fixlet>
+		<Title>Generate Unsigned Report</Title>
+		<Description>This fixlet will create a file with unsigned data </Description>
+		<Relevance>not exists file "C:\temp\appCertData.txt"</Relevance>
+		<Category></Category>
+		<Source>Internal</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2021-10-13</SourceReleaseDate>
+		<SourceSeverity></SourceSeverity>
+		<CVENames></CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Wed, 18 Dec 2024 15:54:07 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell">action uses wow64 redirection {false}
+createfile until EOF
+# 32 bit
+$uninstallApps32 = try {{ Get-ItemProperty 'HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction Stop } catch {{ $null }
+ 
+# 64 bit
+$uninstallApps64 = try {{ Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction Stop } catch {{ $null }
+ 
+
+$combinedUninstallApps = $uninstallApps32 + $uninstallApps64
+ 
+
+$appSignatureData = @()
+ 
+
+foreach ($app in $combinedUninstallApps) {{
+    $name = $app.DisplayName
+    if ($name -eq $null) {{ continue }
+ 
+    $installLocation = ($app.InstallLocation) -replace '"', ''
+    $installSource = ($app.InstallSource) -replace '"', ''
+    $path = if (($installLocation -ne $null) -and ($installLocation -ne "")) {{ $installLocation } elseif (($installSource -ne $null) -and ($installSource -ne "")) {{ $installSource } else {{ $null }
+ 
+    # Skip if the path is null
+    if ($path -eq $null) {{ continue }
+ 
+
+    if (($path -notmatch '.exe') -or ($path -notmatch '.msi')) {{
+        $appPaths = Get-ChildItem -Path $path -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "FullName"
+        
+        foreach ($appPath in $appPaths) {{
+            # Check if it's an executable or MSI
+            if (($appPath -match '.exe') -or ($appPath -match '.msi')) {{
+                $validity = Get-AuthenticodeSignature -FilePath $appPath -ErrorAction SilentlyContinue
+ 
+                # Only add unsigned applications
+                if ($validity.Status -ne "Valid") {{
+                    $appSignatureData += "$name , unsigned"
+                }
+            }
+        }
+    } else {{
+        # Check signature directly for single executable
+        $validity = Get-AuthenticodeSignature -FilePath $path -ErrorAction SilentlyContinue
+ 
+        # Only add unsigned applications
+        if ($validity.Status -ne "Valid") {{
+            $appSignatureData += "$name , unsigned"
+        }
+    }
+}
+
+if ($appSignatureData.Count -eq 0) {{
+    "no unsigned app" | Out-File -FilePath "C:\temp\appCertData.txt" -Encoding UTF8
+} else {{
+    $appSignatureData | Out-File -FilePath "C:\temp\appCertData.txt" -Encoding UTF8
+}
+EOF
+delete uninstall.ps1
+move __createfile uninstall.ps1
+waithidden { pathname of file ((it as string) of value "Path" of key "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell" of native registry) } -ExecutionPolicy Bypass -File uninstall.ps1 </ActionScript>
+			<SuccessCriteria Option="RunToCompletion"></SuccessCriteria>
+		</DefaultAction>
+	</Fixlet>
+</BES>
